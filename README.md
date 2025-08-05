@@ -1,4 +1,4 @@
-# UWB NLOS Error Mitigation in Greenhouse Environments
+# Deep learning-based ranging error mitigation method for UWB localization system in greenhouse
 
 [![Python 3.6](https://img.shields.io/badge/Python-3.6-blue.svg)](https://www.python.org/downloads/release/python-3613/)
 [![PyTorch 1.10](https://img.shields.io/badge/PyTorch-1.10%2Bcu113-orange.svg)](https://pytorch.org/get-started/previous-versions/#v110)
