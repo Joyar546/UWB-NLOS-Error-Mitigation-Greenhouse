@@ -1,0 +1,106 @@
+import torch.nn as nn
+import torch
+import math
+import matplotlib.pyplot as plt
+# import torch.utils.model_zoo as model_zoo
+from .eca_module import eca_layer
+
+
+def conv3x3(in_planes, out_planes, stride=1):
+    """3x3 convolution with padding"""
+    return nn.Conv1d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=1, bias=False)
+
+
+class ECABasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None, k_size=3):
+        super(ECABasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm1d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes, 1)
+        self.bn2 = nn.BatchNorm1d(planes)
+        self.eca = eca_layer(planes, k_size)  # ECA
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.eca(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+
+
+class ECAResNetRE(nn.Module):
+
+    def __init__(self, input_channel, layers, k_size=[3, 3, 3, 3]):
+        self.inplanes = 64
+        super(ECAResNetRE, self).__init__()
+        self.conv1 = nn.Conv1d(input_channel, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)  # input_channel is 1 for 1D
+        self.bn1 = nn.BatchNorm1d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(ECABasicBlock, 64, layers[0], int(k_size[0]), stride=2)
+        self.layer2 = self._make_layer(ECABasicBlock, 128, layers[1], int(k_size[1]), stride=2)
+        self.layer3 = self._make_layer(ECABasicBlock, 256, layers[2], int(k_size[2]), stride=2)
+        self.layer4 = self._make_layer(ECABasicBlock, 512, layers[3], int(k_size[3]), stride=2)
+        self.avgpool = nn.AvgPool1d(kernel_size=4, stride=1)  # origin: 5, 4 for 128, 64
+        self.fc = nn.Linear(128, 1)  # 7168 for FP1016, 3072 for FP512, 1024 for FP256
+
+        # # modify the initialization
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv1d):
+        #         n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+        #         m.weight.data.normal_(0, math.sqrt(2. / n))
+        #     elif isinstance(m, nn.BatchNorm1d):
+        #         m.weight.data.fill_(1)
+        #         m.bias.data.zero_()
+
+    def _make_layer(self, block, planes, blocks, k_size, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv1d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm1d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample, k_size))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes, k_size=k_size))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.conv1(x)  # 64*1*157 -> 64*64*79
+        x = self.bn1(x)
+        x = self.relu(x)  # 64*64*79
+        x = self.maxpool(x)  # 64*64*40
+
+        x = self.layer1(x)  # 64*20
+        x = self.layer2(x)  # 128*10
+        # x = self.layer3(x)  # 256*5
+        # x = self.layer4(x)  # 512*2
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+
+        return x
