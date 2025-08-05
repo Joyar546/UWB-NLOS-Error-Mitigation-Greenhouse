@@ -19,30 +19,28 @@ pip install numpy pandas matplotlib scikit-learn tqdm
 ```
 
 ## 📊 Dataset
-```bash
-CIR : 1016-length vector (raw), representing Channel Impulse Response.
+- CIR : 1016-length vector (raw), representing Channel Impulse Response.
 
-Edis: Estimated distance (in meters) calculated by UWB module (DWM1000).
+- Edis: Estimated distance (in meters) calculated by UWB module (DWM1000).
 
-Rdis: Ground-truth distance (in meters) measured by laser rangefinder.
+- Rdis: Ground-truth distance (in meters) measured by laser rangefinder.
 
-Obstacle: Integer label indicating NLOS condition:
+- Obstacle: Integer label indicating NLOS condition:
 
-| Label | Obstacle Type    | Description                     |
-|-------|------------------|---------------------------------|
-| 0     | LOS              | Line-of-Sight (no obstacle)     |
-| 1     | Human            | Blocked by human body           |
-| 2     | Wood             | Wooden barriers                 |
-| 3     | Steel            | Metal structures                |
-| 4     | Wall             | Concrete/brick walls            |
-| 5     | Glass            | Glass panels/doors              |
-| 6     | Leaves           | Plant foliage                   |
-| 7     | Leaves + Glass   | Mixed obstruction               |
-```
+  | Label | Obstacle Type    | Description                     |
+  |-------|------------------|---------------------------------|
+  | 0     | LOS              | Line-of-Sight (no obstacle)     |
+  | 1     | Human            | Blocked by human body           |
+  | 2     | Wood             | Wooden barriers                 |
+  | 3     | Steel            | Metal structures                |
+  | 4     | Wall             | Concrete/brick walls            |
+  | 5     | Glass            | Glass panels/doors              |
+  | 6     | Leaves           | Plant foliage                   |
+  | 7     | Leaves + Glass   | Mixed obstruction               |
 
 
 ## 📜 Citation
-```bash
+```BibTeX
 @article{niu2023deep,
   title={Deep learning-based ranging error mitigation method for UWB localization system in greenhouse},
   author={Niu, Ziang and Yang, Huizhen and Zhou, Lei and Taha, Mohamed Farag and He, Yong and Qiu, Zhengjun},
